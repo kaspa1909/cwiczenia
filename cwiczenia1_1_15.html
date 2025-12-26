@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trening PRO (Split S na L/P)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-panel: #162032;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #06b6d4;
+            --accent-hover: #0891b2;
+            --border: #334155;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #eab308;
+            --input-height: 42px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* --- PANELE --- */
+        .panel-left {
+            flex: 0 0 300px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .panel-center {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+        }
+
+        .panel-right {
+            flex: 1;
+            min-width: 500px;
+            background-color: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        h2 {
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 1.2rem;
+            margin-top: 0;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* --- UI ELEMENTY --- */
+        .exercise-list-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .exercise-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.2s;
+        }
+        .exercise-card:hover { border-color: var(--border); }
+
+        .exercise-label {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--accent);
+            width: 110px;
+            text-align: right;
+            padding-right: 10px;
+            border-right: 1px solid var(--border);
+            margin-right: 5px;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+
+        .inputs-container {
+            display: flex;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .rep-input {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0 10px;
+            height: var(--input-height);
+            border-radius: 4px;
+            font-size: 1.2rem;
+            width: 120px;
+            text-align: center;
+        }
+        .weight-input {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--warning); 
+            padding: 0 10px;
+            height: var(--input-height);
+            border-radius: 4px;
+            font-size: 1.2rem;
+            width: 140px;
+            text-align: center;
+        }
+        
+        .rep-input:focus, .weight-input:focus { border-color: var(--accent); outline: none; }
+
+        .hand-group { display: flex; gap: 2px; flex-shrink: 0; }
+
+        .hand-btn {
+            width: var(--input-height);
+            height: var(--input-height);
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .hand-btn:hover { color: var(--text-main); border-color: var(--accent); }
+        .hand-btn.active {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .btn-add {
+            height: var(--input-height);
+            background-color: var(--success);
+            color: #fff;
+            border: none;
+            padding: 0 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .btn-add:hover { opacity: 0.9; }
+
+        .control-group {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; display: block; margin-bottom: 8px; }
+        
+        .drop-zone {
+            border: 2px dashed var(--border);
+            padding: 30px 10px;
+            text-align: center;
+            border-radius: 6px;
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            cursor: default;
+            position: relative; 
+        }
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background-color: rgba(6, 182, 212, 0.1);
+            color: var(--text-main);
+            transform: scale(1.02);
+        }
+        .drop-zone * { pointer-events: none; }
+
+        .btn-main {
+            width: 100%; padding: 12px; background-color: var(--accent); color: white;
+            border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+        .btn-main:hover { opacity: 0.9; }
+
+        .log-mini-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
+        .log-mini-item { padding: 8px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        
+        .log-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .btn-delete-log {
+            background-color: transparent;
+            color: var(--danger);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.2s;
+        }
+        .btn-delete-log:hover {
+            background-color: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .panel-header-row {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 20px; 
+            border-bottom: 2px solid var(--border); 
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .panel-header-row h2 { border: none; margin: 0; padding: 0; }
+        .view-switcher { display: flex; gap: 5px; flex-wrap: wrap; }
+        
+        .view-btn {
+            background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-muted);
+            padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s;
+        }
+        .view-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .content-view { flex: 1; overflow-y: auto; display: none; }
+        .content-view.active { display: block; }
+
+        .history-card {
+            background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+            padding: 15px; margin-bottom: 20px; animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .history-header {
+            display: flex; justify-content: space-between; border-bottom: 1px solid var(--border);
+            padding-bottom: 10px; margin-bottom: 10px; font-weight: bold;
+        }
+        .history-date { color: var(--accent); }
+        .history-total { color: var(--text-muted); font-size: 0.9rem; }
+
+        .ex-block { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+        .ex-block:last-child { border: none; }
+        .ex-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .ex-name-group { display: flex; align-items: center; gap: 10px; }
+        .ex-name { font-size: 1rem; font-weight: bold; color: var(--text-main); }
+        .ex-stats { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        .stat-item { background: #0f172a; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); }
+        .stat-l { color: #facc15; } 
+        .stat-p { color: #3b82f6; } 
+        .stat-s { color: #fff; } 
+        .stat-b { color: #94a3b8; border-color: #64748b; }
+
+        .ex-sets { font-family: monospace; font-size: 0.95rem; color: #cbd5e1; margin-bottom: 8px; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 4px; }
+        
+        .diff-tag-sm { font-weight: bold; font-size: 0.8em; margin-left: 4px;}
+        .diff-pos { color: var(--success); } .diff-neg { color: var(--danger); } .diff-neu { color: var(--text-muted); }
+        .diff-header { font-size: 0.85em; padding: 2px 6px; border-radius: 12px; font-weight: bold; background: rgba(255,255,255,0.05); }
+        .diff-header.pos { color: var(--success); background: rgba(16, 185, 129, 0.15); }
+        .diff-header.neg { color: var(--danger); background: rgba(239, 68, 68, 0.15); }
+        .diff-header.neu { color: var(--text-muted); }
+
+        #chartContainer {
+            height: 100%; width: 100%; min-height: 400px;
+            background: var(--bg-card); border-radius: 8px; padding: 10px; box-sizing: border-box;
+        }
+
+        @media (max-width: 1000px) {
+            .main-container { flex-direction: column; height: auto; overflow: auto; }
+            .panel-left, .panel-center, .panel-right { flex: none; width: 100%; border: none; height: auto; overflow: visible; }
+            .panel-right { height: 600px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+
+    <div class="panel-left">
+        <h2>Panel Sterowania</h2>
+        <div class="control-group">
+            <label>1. Wczytaj bazę (.txt)</label>
+            <div id="dropZone" class="drop-zone">
+                Upuść plik tutaj<br>
+                <span style="font-size:0.75em; color:#64748b">(S w historii dzielone na L/P)</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>2. Zapisz trening</label>
+            <button class="btn-main" onclick="exportFile()">Dopisz i Pobierz</button>
+        </div>
+        <div class="control-group" style="flex-grow: 1;">
+            <label>Aktualna sesja:</label>
+            <ul class="log-mini-list" id="currentSessionLog"></ul>
+            <div style="margin-top:10px; font-family:monospace; font-size:0.8rem; color:var(--success); word-break:break-all;" id="outputString">...</div>
+        </div>
+    </div>
+
+    <div class="panel-center">
+        <h2>Panel Treningowy</h2>
+        <div class="exercise-list-wrapper" id="gridContainer">
+            </div>
+    </div>
+
+    <div class="panel-right">
+        
+        <div class="panel-header-row">
+            <h2>Historia i Progres</h2>
+            <div class="view-switcher">
+                <button class="view-btn active" id="btnList" onclick="switchView('list')">Historia</button>
+                <button class="view-btn" id="btnChartReps" onclick="switchView('chartReps')">Wykres (Powt)</button>
+                <button class="view-btn" id="btnChartVol" onclick="switchView('chartVol')">Wykres (Obj)</button>
+                <button class="view-btn" id="btnChartAvg" onclick="switchView('chartAvg')">Wykres (Śr. KG)</button>
+            </div>
+        </div>
+
+        <div id="viewList" class="content-view active">
+            <div id="historyList">
+                <p style="text-align:center; color:var(--text-muted); margin-top:50px;">
+                    Upuść plik w lewym panelu, aby zobaczyć analizę.
+                </p>
+            </div>
+        </div>
+
+        <div id="viewChart" class="content-view">
+            <div id="chartContainer">
+                <canvas id="workoutChart"></canvas>
+            </div>
+            <p id="chartDesc" style="text-align:center; color:var(--text-muted); font-size:0.8rem; margin-top:10px;">
+                </p>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const EXERCISES = ['A', 'B', 'C', 'D', 'H', 'I', 'J'];
+    
+    const EXERCISE_NAMES = {
+        'A': 'Biceps', 'B': 'Triceps', 'C': 'Wznosy', 'D': 'Klata',
+        'H': 'Przysiady', 'I': 'Pompki', 'J': 'Brzuszki'
+    };
+
+    const EXERCISE_COLORS = {
+        'A': '#ef4444', 'B': '#3b82f6', 'C': '#10b981', 'D': '#eab308',
+        'H': '#14b8a6', 'I': '#84cc16', 'J': '#06b6d4'
+    };
+
+    const setCounters = {}; 
+    let currentWorkoutLog = []; 
+    let importedFileContent = ""; 
+    let parsedWorkoutsGlobal = []; 
+    let myChartInstance = null; 
+    let currentChartMode = 'vol'; 
+
+    function initGrid() {
+        const container = document.getElementById('gridContainer');
+        EXERCISES.forEach(type => {
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            const displayName = EXERCISE_NAMES[type] || type;
+            
+            const savedReps = localStorage.getItem(`input_reps_${type}`) || '';
+            const savedWeight = localStorage.getItem(`input_weight_${type}`) || '';
+            let savedHand = localStorage.getItem(`input_hand_${type}`);
+            const isBodyWeight = ['H', 'I', 'J'].includes(type);
+            
+            if (!savedHand) savedHand = isBodyWeight ? 'B' : 'S';
+
+            let buttonsHtml = '';
+            if (isBodyWeight) {
+                buttonsHtml = `
+                    <button class="hand-btn ${savedHand === 'B' ? 'active' : ''}" onclick="selectHand('${type}', 'B')">B</button>
+                    <button class="hand-btn ${savedHand === 'S' ? 'active' : ''}" onclick="selectHand('${type}', 'S')">S</button>
+                `;
+            } else {
+                buttonsHtml = `
+                    <button class="hand-btn ${savedHand === 'L' ? 'active' : ''}" onclick="selectHand('${type}', 'L')">L</button>
+                    <button class="hand-btn ${savedHand === 'S' ? 'active' : ''}" onclick="selectHand('${type}', 'S')">S</button>
+                    <button class="hand-btn ${savedHand === 'P' ? 'active' : ''}" onclick="selectHand('${type}', 'P')">P</button>
+                `;
+            }
+
+            card.innerHTML = `
+                <span class="exercise-label">
+                    ${displayName}
+                    <span style="color: #475569; font-weight: normal; margin-left:4px;">${type}</span>
+                </span>
+                <div class="inputs-container">
+                    <input type="number" id="input-weight-${type}" class="weight-input" placeholder="kg" step="0.5" min="0" value="${savedWeight}" oninput="saveLocalStorage('${type}')" onkeypress="handleEnter(event, '${type}')">
+                    <input type="number" id="input-reps-${type}" class="rep-input" placeholder="powt" min="1" value="${savedReps}" oninput="saveLocalStorage('${type}')" onkeypress="handleEnter(event, '${type}')">
+                </div>
+                <input type="hidden" id="hand-val-${type}" value="${savedHand}">
+                <div class="hand-group">${buttonsHtml}</div>
+                <button class="btn-add" onclick="addSet('${type}')">+</button>
+            `;
+            container.appendChild(card);
+        });
+        setupDropZone();
+    }
+
+    function setupDropZone() {
+        const dropZone = document.getElementById('dropZone');
+        window.addEventListener("dragover", e => e.preventDefault(), false);
+        window.addEventListener("drop", e => e.preventDefault(), false);
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+    }
+
+    function handleFile(file) {
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            importedFileContent = ev.target.result;
+            processHistory(importedFileContent);
+            const dropZone = document.getElementById('dropZone');
+            dropZone.innerHTML = `<span style="color:var(--success)">✓ Wczytano: ${file.name}</span>`;
+            setTimeout(() => {
+                dropZone.innerHTML = `Upuść plik tutaj<br><span style="font-size:0.75em; color:#64748b">(S w historii dzielone na L/P)</span>`;
+            }, 3000);
+        };
+        reader.readAsText(file);
+    }
+
+    function selectHand(type, val) {
+        document.getElementById(`hand-val-${type}`).value = val;
+        saveLocalStorage(type);
+        const container = document.getElementById(`input-reps-${type}`).parentElement.parentElement;
+        const buttons = container.querySelectorAll('.hand-btn');
+        buttons.forEach(btn => {
+            if (btn.innerText === val) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+
+    function saveLocalStorage(type) {
+        const reps = document.getElementById(`input-reps-${type}`).value;
+        const weight = document.getElementById(`input-weight-${type}`).value;
+        const hand = document.getElementById(`hand-val-${type}`).value;
+        localStorage.setItem(`input_reps_${type}`, reps);
+        localStorage.setItem(`input_weight_${type}`, weight);
+        localStorage.setItem(`input_hand_${type}`, hand);
+    }
+
+    function handleEnter(e, type) { if(e.key === 'Enter') addSet(type); }
+
+    function addSet(type) {
+        const inputReps = document.getElementById(`input-reps-${type}`);
+        const inputWeight = document.getElementById(`input-weight-${type}`);
+        const hand = document.getElementById(`hand-val-${type}`).value;
+        const reps = parseInt(inputReps.value);
+        let weight = parseFloat(inputWeight.value);
+        
+        if (isNaN(reps) || reps <= 0) return;
+        if (isNaN(weight)) weight = 0;
+
+        const key = `${type}_${hand}`;
+        if (!setCounters[key]) setCounters[key] = 0;
+        setCounters[key]++;
+
+        const weightStr = weight > 0 ? `M${Math.round(weight * 100)}` : '';
+        const code = `_${type}${setCounters[key]}${hand}${reps}${weightStr}`;
+
+        const entry = { type, set: setCounters[key], reps, hand, weight, code };
+        currentWorkoutLog.push(entry);
+        
+        const btn = inputReps.parentElement.parentElement.querySelector('.btn-add');
+        const oldText = btn.innerText;
+        btn.innerText = "✓";
+        setTimeout(()=>btn.innerText = oldText, 500);
+        renderCurrentSession();
+    }
+
+    function removeSet(index) {
+        currentWorkoutLog.splice(index, 1);
+        renderCurrentSession();
+    }
+
+    function renderCurrentSession() {
+        const list = document.getElementById('currentSessionLog');
+        const output = document.getElementById('outputString');
+        list.innerHTML = '';
+        
+        [...currentWorkoutLog].reverse().forEach((item, i) => {
+            const li = document.createElement('li');
+            li.className = 'log-mini-item';
+            const name = EXERCISE_NAMES[item.type] || item.type;
+            const originalIndex = currentWorkoutLog.length - 1 - i;
+            
+            const wInfo = item.weight > 0 ? ` x ${item.weight}kg` : '';
+
+            li.innerHTML = `
+                <div class="log-row">
+                    <span><strong>${name}</strong> (S${item.set} ${item.hand})</span>
+                    <div style="display:flex; align-items:center;">
+                        <span>${item.reps}${wInfo}</span>
+                        <button class="btn-delete-log" onclick="removeSet(${originalIndex})" title="Usuń wpis">✕</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+        output.textContent = currentWorkoutLog.map(i => i.code).join('');
+    }
+
+    function switchView(viewName) {
+        const btnList = document.getElementById('btnList');
+        const btnChartReps = document.getElementById('btnChartReps');
+        const btnChartVol = document.getElementById('btnChartVol');
+        const btnChartAvg = document.getElementById('btnChartAvg');
+        
+        const viewList = document.getElementById('viewList');
+        const viewChart = document.getElementById('viewChart');
+        const chartDesc = document.getElementById('chartDesc');
+
+        [btnList, btnChartReps, btnChartVol, btnChartAvg].forEach(b => b.classList.remove('active'));
+        viewList.classList.remove('active');
+        viewChart.classList.remove('active');
+
+        if (viewName === 'list') {
+            btnList.classList.add('active');
+            viewList.classList.add('active');
+        } else {
+            viewChart.classList.add('active');
+            if (viewName === 'chartReps') {
+                btnChartReps.classList.add('active');
+                currentChartMode = 'reps';
+                chartDesc.innerHTML = 'Wykres przedstawia sumę <strong>powtórzeń</strong> dla każdego ćwiczenia.';
+            } else if (viewName === 'chartVol') {
+                btnChartVol.classList.add('active');
+                currentChartMode = 'vol';
+                chartDesc.innerHTML = 'Wykres przedstawia <strong>objętość</strong> (ciężar x powtórzenia).<br>B=0, S liczona bez podwajania.';
+            } else if (viewName === 'chartAvg') {
+                btnChartAvg.classList.add('active');
+                currentChartMode = 'avg';
+                chartDesc.innerHTML = 'Wykres przedstawia <strong>średni ciężar</strong> (Objętość / Powtórzenia).';
+            }
+            renderChart();
+        }
+    }
+
+    function exportFile() {
+        const code = currentWorkoutLog.map(i => i.code).join('');
+        if(!code) { alert("Brak danych!"); return; }
+        const now = new Date();
+        const timeStr = `${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()}>${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        const newEntry = `${timeStr}${code}`;
+        
+        let finalContent = "";
+        if (importedFileContent) {
+            finalContent = importedFileContent.trim() + "\n" + newEntry;
+        } else {
+            finalContent = newEntry;
+        }
+
+        const blob = new Blob([finalContent], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'trening_baza.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function processHistory(text) {
+        const cleanText = text.replace(/^\uFEFF/, '');
+        const lines = cleanText.split('\n').filter(l => l.trim().length > 0);
+        parsedWorkoutsGlobal = [];
+        lines.forEach(line => {
+            const parsed = parseLine(line.trim());
+            if(parsed) parsedWorkoutsGlobal.push(parsed);
+        });
+        parsedWorkoutsGlobal.sort((a,b) => a.dateObj - b.dateObj);
+        renderHistoryList(parsedWorkoutsGlobal);
+        if(document.getElementById('viewChart').classList.contains('active')) renderChart();
+    }
+
+    function parseLine(line) {
+        const regexHeader = /^(\d{2}\.\d{2}\.\d{4})([T>])(\d{4})(.*)$/;
+        const match = line.match(regexHeader);
+        if(!match) return null;
+        
+        const [_, dStr, separator, tStr, codeStr] = match;
+        const [d,m,y] = dStr.split('.');
+        const dateObj = new Date(`${y}-${m}-${d}T${tStr.substr(0,2)}:${tStr.substr(2,2)}:00`);
+        
+        const exercises = {};
+        let totalVolumeAll = 0; 
+
+        if (separator === '>') {
+            const regexNew = /_([A-Z])(\d+)([LSPBS])(\d+)(?:M(\d+))?/g;
+            let mSeg;
+            while( (mSeg = regexNew.exec(codeStr)) !== null ) {
+                const type = mSeg[1];
+                const setNum = parseInt(mSeg[2]);
+                const hand = mSeg[3];
+                const reps = parseInt(mSeg[4]);
+                const weightRaw = mSeg[5] ? parseInt(mSeg[5]) / 100 : 0;
+
+                // --- LOGIKA OBJĘTOŚCI (BEZ X2, B=0) ---
+                let setVolume = 0;
+                
+                // Grupa Bodyweight: H, I, J
+                if (['H', 'I', 'J'].includes(type)) {
+                    if (hand === 'B') {
+                        setVolume = 0; // Jeśli B, masa = 0
+                    } else {
+                        // S lub inne - masa normalnie (reps * weight)
+                        setVolume = reps * weightRaw;
+                    }
+                } 
+                else {
+                    // Wszystkie inne (A, B, C, D) - masa normalnie (bez mnożenia S)
+                    setVolume = reps * weightRaw;
+                }
+
+                totalVolumeAll += setVolume;
+
+                if(!exercises[type]) exercises[type] = { totalVol: 0, totalReps: 0, hands: { L:0, P:0, S:0, B:0 }, setsDetails: [] };
+                
+                exercises[type].totalVol += setVolume;
+                exercises[type].totalReps += reps;
+                if (exercises[type].hands[hand] !== undefined) exercises[type].hands[hand] += setVolume;
+                
+                exercises[type].setsDetails.push({ num: setNum, val: reps, hand: hand, weight: weightRaw, vol: setVolume });
+            }
+        } else {
+            // STARY FORMAT (bez M -> vol=0)
+            const regexOld = /([A-Z])S(\d+)P(\d+)([LSP])/g;
+            let mSeg;
+            while( (mSeg = regexOld.exec(codeStr)) !== null ) {
+                const type = mSeg[1];
+                const setNum = parseInt(mSeg[2]);
+                const reps = parseInt(mSeg[3]);
+                const hand = mSeg[4];
+                
+                if(!exercises[type]) exercises[type] = { totalVol: 0, totalReps: 0, hands: { L:0, P:0, S:0, B:0 }, setsDetails: [] };
+                
+                exercises[type].totalReps += reps;
+                exercises[type].setsDetails.push({ num: setNum, val: reps, hand: hand, weight: 0, vol: 0 });
+            }
+        }
+        
+        return { dateDisplay: dStr, timeDisplay: `${tStr.substr(0,2)}:${tStr.substr(2,2)}`, dateObj, exercises, totalVolumeAll };
+    }
+
+    function renderHistoryList(workouts) {
+        const container = document.getElementById('historyList');
+        container.innerHTML = '';
+        const displayList = [...workouts].reverse();
+
+        for (let i = 0; i < displayList.length; i++) {
+            const current = displayList[i];
+            const prev = (i < displayList.length - 1) ? displayList[i+1] : null;
+            const card = document.createElement('div');
+            card.className = 'history-card';
+            
+            let cardHtml = `
+                <div class="history-header">
+                    <span class="history-date">${current.dateDisplay} <small>(${current.timeDisplay})</small></span>
+                    <span class="history-total">Objętość: ${current.totalVolumeAll} kg</span>
+                </div>
+            `;
+            Object.keys(current.exercises).sort().forEach(exKey => {
+                const exData = current.exercises[exKey];
+                const prevExData = prev ? prev.exercises[exKey] : null;
+                const exName = EXERCISE_NAMES[exKey] || `Ćwiczenie ${exKey}`;
+                
+                let totalDiffHtml = '';
+                if (prevExData) {
+                    const diff = exData.totalVol - prevExData.totalVol;
+                    if (diff > 0) totalDiffHtml = `<span class="diff-header pos">+${diff}</span>`;
+                    else if (diff < 0) totalDiffHtml = `<span class="diff-header neg">${diff}</span>`;
+                    else totalDiffHtml = `<span class="diff-header neu">=</span>`;
+                } else if (prev) {
+                    totalDiffHtml = `<span class="diff-header pos">Nowe!</span>`;
+                }
+
+                const setsMap = {};
+                exData.setsDetails.forEach(s => {
+                    if(!setsMap[s.num]) setsMap[s.num] = [];
+                    let wStr = s.weight > 0 ? `x${s.weight}kg` : '';
+                    setsMap[s.num].push(`${s.val}${wStr}(${s.hand})`);
+                });
+                
+                const setsString = Object.keys(setsMap).sort((a,b)=>a-b).map(setNum => {
+                    return `S${setNum}: ` + setsMap[setNum].join(' | ');
+                }).join(', ');
+
+                const statsArr = [];
+                // --- TU ZASTOSOWANO LOGIKĘ DZIELENIA S na L/P ---
+                // Pobieramy surowe dane (objętość)
+                let currL = exData.hands.L;
+                let currP = exData.hands.P;
+                let currS = exData.hands.S;
+                let currB = exData.hands.B;
+
+                // Dzielimy S po równo
+                if (currS > 0) {
+                    currL += currS / 2;
+                    currP += currS / 2;
+                    currS = 0; // Zerujemy S dla wyświetlania
+                }
+
+                // Robimy to samo dla poprzedniego treningu, aby różnica była poprawna
+                let prevL = 0, prevP = 0, prevS = 0, prevB = 0;
+                if (prevExData) {
+                    prevL = prevExData.hands.L;
+                    prevP = prevExData.hands.P;
+                    prevS = prevExData.hands.S;
+                    prevB = prevExData.hands.B;
+                    
+                    if (prevS > 0) {
+                        prevL += prevS / 2;
+                        prevP += prevS / 2;
+                        prevS = 0;
+                    }
+                }
+
+                const makeStat = (handCode, val, prevVal, labelClass) => {
+                    if (val === 0 && (!prevVal || prevVal===0)) return null; 
+                    let diffStr = '';
+                    if (prevVal !== undefined) {
+                        const diff = val - prevVal;
+                        if (diff > 0) diffStr = `<span class="diff-tag-sm diff-pos">+${diff}</span>`;
+                        else if (diff < 0) diffStr = `<span class="diff-tag-sm diff-neg">${diff}</span>`;
+                    }
+                    return `<span class="stat-item ${labelClass}">${handCode}: ${val}${diffStr}</span>`;
+                };
+
+                const lStat = makeStat('L', currL, prevL, 'stat-l'); if(lStat) statsArr.push(lStat);
+                const pStat = makeStat('P', currP, prevP, 'stat-p'); if(pStat) statsArr.push(pStat);
+                const sStat = makeStat('S', currS, prevS, 'stat-s'); if(sStat) statsArr.push(sStat);
+                const bStat = makeStat('B', currB, prevB, 'stat-b'); if(bStat) statsArr.push(bStat);
+
+                cardHtml += `
+                    <div class="ex-block">
+                        <div class="ex-title-row">
+                            <div class="ex-name-group"><span class="ex-name">${exName}</span>${totalDiffHtml}</div>
+                            <span><strong>${exData.totalVol}</strong> kg</span>
+                        </div>
+                        <div class="ex-sets">${setsString}</div>
+                        <div class="ex-stats">Objętość: ${statsArr.join(' | ')}</div>
+                    </div>
+                `;
+            });
+            card.innerHTML = cardHtml;
+            container.appendChild(card);
+        }
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('workoutChart').getContext('2d');
+        if (myChartInstance) myChartInstance.destroy();
+        if (parsedWorkoutsGlobal.length === 0) return;
+
+        const labels = parsedWorkoutsGlobal.map(w => w.dateDisplay);
+        const datasets = [];
+        EXERCISES.forEach(type => {
+            const dataPoints = parsedWorkoutsGlobal.map(w => {
+                if (!w.exercises[type]) return 0;
+                
+                const e = w.exercises[type];
+                
+                if (currentChartMode === 'reps') {
+                    return e.totalReps;
+                } else if (currentChartMode === 'avg') {
+                    return e.totalReps > 0 ? (e.totalVol / e.totalReps) : 0;
+                } else {
+                    return e.totalVol;
+                }
+            });
+
+            if (dataPoints.some(val => val > 0)) {
+                datasets.push({
+                    label: EXERCISE_NAMES[type],
+                    data: dataPoints,
+                    borderColor: EXERCISE_COLORS[type] || '#fff',
+                    backgroundColor: EXERCISE_COLORS[type] || '#fff',
+                    borderWidth: 2, tension: 0.2, fill: false
+                });
+            }
+        });
+
+        let yAxisTitle = 'Wartość';
+        if (currentChartMode === 'reps') yAxisTitle = 'Powtórzenia';
+        else if (currentChartMode === 'vol') yAxisTitle = 'Objętość (kg)';
+        else if (currentChartMode === 'avg') yAxisTitle = 'Śr. Ciężar (kg)';
+
+        myChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, beginAtZero: true, title: { display: true, text: yAxisTitle, color: '#94a3b8' } }
+                }
+            }
+        });
+    }
+
+    initGrid();
+</script>
+
+</body>
+</html>
