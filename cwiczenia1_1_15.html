@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trening PRO (Split S na L/P)</title>
+    <title>Trening PRO (Średnia S/2 dla L/S/P)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -322,7 +322,7 @@
             <label>1. Wczytaj bazę (.txt)</label>
             <div id="dropZone" class="drop-zone">
                 Upuść plik tutaj<br>
-                <span style="font-size:0.75em; color:#64748b">(S w historii dzielone na L/P)</span>
+                <span style="font-size:0.75em; color:#64748b">(Śr. KG: S/2 dla A,B,C,D)</span>
             </div>
         </div>
         <div class="control-group">
@@ -350,6 +350,8 @@
                 <button class="view-btn active" id="btnList" onclick="switchView('list')">Historia</button>
                 <button class="view-btn" id="btnChartReps" onclick="switchView('chartReps')">Wykres (Powt)</button>
                 <button class="view-btn" id="btnChartVol" onclick="switchView('chartVol')">Wykres (Obj)</button>
+                <button class="view-btn" id="btnChartSum" onclick="switchView('chartSum')">Wykres (Suma)</button>
+                <button class="view-btn" id="btnChartSumEx" onclick="switchView('chartSumEx')">Wykres (Suma poz. ćw)</button>
                 <button class="view-btn" id="btnChartAvg" onclick="switchView('chartAvg')">Wykres (Śr. KG)</button>
             </div>
         </div>
@@ -563,11 +565,13 @@
         const btnChartReps = document.getElementById('btnChartReps');
         const btnChartVol = document.getElementById('btnChartVol');
         const btnChartAvg = document.getElementById('btnChartAvg');
+        const btnChartSum = document.getElementById('btnChartSum');
+        const btnChartSumEx = document.getElementById('btnChartSumEx');
         
         const viewList = document.getElementById('viewList');
         const viewChart = document.getElementById('viewChart');
         const chartDesc = document.getElementById('chartDesc');
-
+        
         [btnList, btnChartReps, btnChartVol, btnChartAvg].forEach(b => b.classList.remove('active'));
         viewList.classList.remove('active');
         viewChart.classList.remove('active');
@@ -588,8 +592,18 @@
             } else if (viewName === 'chartAvg') {
                 btnChartAvg.classList.add('active');
                 currentChartMode = 'avg';
-                chartDesc.innerHTML = 'Wykres przedstawia <strong>średni ciężar</strong> (Objętość / Powtórzenia).';
+                chartDesc.innerHTML = 'Wykres przedstawia <strong>średni ciężar</strong> (Objętość / Powtórzenia).<br>Dla A,B,C,D (Sztanga) waga jest dzielona przez 2.';
             }
+            else if (viewName === 'chartSum') {
+                btnChartSum.classList.add('active');
+                currentChartMode = 'sum';
+                chartDesc.innerHTML = 'Wykres przedstawia <strong>sumę podniesionej masy</strong> ze wszystkich ćwiczeń i treningów.';
+            }else if (viewName === 'chartSumEx') {
+                btnChartSumEx.classList.add('active');
+                currentChartMode = 'sumEx';
+                chartDesc.innerHTML = 'Wykres przedstawia <strong>sumę podniesionej masy</strong> z podziałem na ćwiczenia.';
+            }
+            
             renderChart();
         }
     }
@@ -809,40 +823,86 @@
         const ctx = document.getElementById('workoutChart').getContext('2d');
         if (myChartInstance) myChartInstance.destroy();
         if (parsedWorkoutsGlobal.length === 0) return;
-
         const labels = parsedWorkoutsGlobal.map(w => w.dateDisplay);
         const datasets = [];
-        EXERCISES.forEach(type => {
-            const dataPoints = parsedWorkoutsGlobal.map(w => {
-                if (!w.exercises[type]) return 0;
-                
-                const e = w.exercises[type];
-                
-                if (currentChartMode === 'reps') {
-                    return e.totalReps;
-                } else if (currentChartMode === 'avg') {
-                    return e.totalReps > 0 ? (e.totalVol / e.totalReps) : 0;
-                } else {
-                    return e.totalVol;
+        
+        if (currentChartMode === 'sum') {
+            const dataPoints = parsedWorkoutsGlobal.map((w, index) => {
+                let sum = 0;
+                for (let i = 0; i <= index; i++) {
+                    sum += parsedWorkoutsGlobal[i].totalVolumeAll;
                 }
+                return sum;
             });
 
-            if (dataPoints.some(val => val > 0)) {
-                datasets.push({
-                    label: EXERCISE_NAMES[type],
-                    data: dataPoints,
-                    borderColor: EXERCISE_COLORS[type] || '#fff',
-                    backgroundColor: EXERCISE_COLORS[type] || '#fff',
-                    borderWidth: 2, tension: 0.2, fill: false
+            datasets.push({
+                label: 'Suma Całkowita',
+                data: dataPoints,
+                borderColor: '#f1f5f9',
+                backgroundColor: '#f1f5f9',
+                borderWidth: 2, tension: 0.2, fill: false
+            });
+        } else {
+            EXERCISES.forEach(type => {
+                const dataPoints = parsedWorkoutsGlobal.map(w => {
+                    if (!w.exercises[type]) return 0;
+                    
+                    const e = w.exercises[type];
+                    
+                    if (currentChartMode === 'reps') {
+                        return e.totalReps;
+                    } else if (currentChartMode === 'avg') {
+                        // Custom Average Calculation
+                        if (e.totalReps === 0) return 0;
+                        
+                        let adjustedSum = 0;
+                        e.setsDetails.forEach(s => {
+                            let effectiveWeight = s.weight;
+                            // For A, B, C, D and 'S', divide weight by 2
+                            if (['A', 'B', 'C', 'D'].includes(type) && s.hand === 'S') {
+                                effectiveWeight = s.weight / 2;
+                            }
+                            adjustedSum += s.val * effectiveWeight;
+                        });
+                        
+                        return adjustedSum / e.totalReps;
+                        
+                    }else if(currentChartMode === 'sumEx'){
+                      let sum = 0;
+                      for (let i = 0; i <= parsedWorkoutsGlobal.indexOf(w); i++) {
+                          const workout = parsedWorkoutsGlobal[i];
+                          if(workout.exercises[type]) sum += workout.exercises[type].totalVol;
+                        }
+                      return sum;
+                    }
+                    
+                    
+                    else {
+                        return e.totalVol;
+                    }
+                    
                 });
-            }
-        });
+
+                if (dataPoints.some(val => val > 0)) {
+                    datasets.push({
+                        label: EXERCISE_NAMES[type],
+                        data: dataPoints,
+                        borderColor: EXERCISE_COLORS[type] || '#fff',
+                        backgroundColor: EXERCISE_COLORS[type] || '#fff',
+                        borderWidth: 2, tension: 0.2, fill: false
+                    });
+                }
+            });
+        }
+
 
         let yAxisTitle = 'Wartość';
         if (currentChartMode === 'reps') yAxisTitle = 'Powtórzenia';
         else if (currentChartMode === 'vol') yAxisTitle = 'Objętość (kg)';
         else if (currentChartMode === 'avg') yAxisTitle = 'Śr. Ciężar (kg)';
-
+        else if (currentChartMode === 'sum') yAxisTitle = 'Suma (kg)';
+        else if (currentChartMode === 'sumEx') yAxisTitle = 'Suma (kg)';
+        
         myChartInstance = new Chart(ctx, {
             type: 'line',
             data: { labels: labels, datasets: datasets },
